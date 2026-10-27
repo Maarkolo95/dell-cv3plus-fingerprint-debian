@@ -1,0 +1,40 @@
+# dell-cv3plus-fingerprint-debian
+
+> Scripts that make the Dell ControlVault 3 Plus fingerprint reader (Broadcom 58200, USB IDs
+> 0a5c:5864, 0a5c:5865, 0a5c:5866, 0a5c:5867) work on Debian 13 (trixie), amd64, including
+> fingerprint sudo, SDDM login and KDE Plasma lock-screen unlock. Tested on a Dell Pro 16 Plus
+> PB16250 (0a5c:5865) with libfprint 1.94.9 and fprintd 1.94.5.
+
+## When this applies
+
+- `fprintd-list` says "No devices available" and `lsusb` shows `0a5c:586x Broadcom Corp. 58200`.
+- Debian's libfprint lists the ID as "Known unsupported" because the reader needs Dell's
+  proprietary TOD (Touch OEM Drivers) plug-in `libfprint-2-tod1-broadcom-cv3plus`.
+- NOT for older ControlVault 3 readers (0a5c:5842-5845); they use `libfprint-2-tod1-broadcom`.
+
+## How it works
+
+1. Build libfprint `v<debian-version>+tod1` from https://gitlab.freedesktop.org/3v1n0/libfprint
+   and install it to /usr/local/lib/x86_64-linux-gnu (overrides Debian's copy, no dpkg files touched).
+2. Install the Broadcom driver .so to /usr/lib/x86_64-linux-gnu/libfprint-2/tod-1/, firmware to
+   /var/lib/fprint/.broadcomCv3plusFW, udev rules to /etc/udev/rules.d, from
+   https://git.launchpad.net/~oem-solutions-engineers/pc-enablement/+git/libfprint-2-tod1-broadcom-cv3plus
+   (pinned commit 0614543a2a72d1fc1cad0af924741f62b848afab).
+3. systemd drop-in for fprintd: `ReadWritePaths=/run /var/log` (driver writes /run/bcm_fw_status.txt,
+   /run/bcm_cert_cache.dat) and `--no-timeout` (first-run firmware update).
+4. PAM: pam-auth-update profile with `pam_fprintd.so max-tries=3 timeout=20`; KDE lock screen uses
+   /etc/pam.d/kde (password) and /etc/pam.d/kde-fingerprint (fingerprint) in parallel.
+
+## Key gotchas
+
+- After the firmware update the chip re-enumerates; fprintd may show "found 3 devices" and fail with
+  "USB error on device 0a5c:5863 : No such device". Fix: `sudo systemctl restart fprintd`.
+- The driver has no identify support: only the FIRST enrolled finger is used for verification.
+
+## Files
+
+- [README.md](README.md): full guide, supported models, troubleshooting
+- [install-fingerprint.sh](install-fingerprint.sh): `sudo bash install-fingerprint.sh`
+- [enable-fingerprint-auth.sh](enable-fingerprint-auth.sh): `sudo bash enable-fingerprint-auth.sh [--disable]`
+- [test-fingerprint.sh](test-fingerprint.sh): `bash test-fingerprint.sh [finger-name]`
+- [uninstall-fingerprint.sh](uninstall-fingerprint.sh): `sudo bash uninstall-fingerprint.sh`

@@ -8,6 +8,43 @@ Out of the box, Debian lists this reader as *unsupported* and `fprintd-list` say
 build of `libfprint` with plug-in ("TOD", Touch OEM Drivers) support, which Debian doesn't ship.
 These scripts build that library, install Dell's driver, and wire everything up. All changes can be undone.
 
+## Symptoms this fixes
+
+You're in the right place if, on Debian (or another distro whose `libfprint` has no TOD support):
+
+- `fprintd-list $USER` prints **`No devices available`**
+- `fprintd-enroll` / `fprintd-verify` fail with
+  **`Impossible to enroll: GDBus.Error:net.reactivated.Fprint.Error.NoSuchDevice: No devices available`**
+- KDE *System Settings → Users → Configure Fingerprint Authentication* or GNOME *Settings → Users →
+  Fingerprint Login* shows no reader, or doesn't offer the option at all
+- `lsusb` shows **`ID 0a5c:5865 Broadcom Corp. 58200`** (or `5864`, `5866`, `5867`)
+- The reader works on Windows (Dell ControlVault / Windows Hello) but not on Linux
+- `/usr/lib/udev/hwdb.d/60-autosuspend-libfprint-2.hwdb` lists your ID under *Known unsupported devices*
+- After installing a Broadcom driver: **`USB error on device 0a5c:5863 : No such device (it may have been disconnected) [-4]`**,
+  or `fprintd-list` shows `found 3 devices`. See [Known issues](#known-issues-and-limitations)
+
+## Laptops with ControlVault 3 Plus
+
+Dell's security advisory [DSA-2025-053](https://www.dell.com/support/kbdoc/en-us/000276106/dsa-2025-053)
+lists these models with the **ControlVault 3 Plus** chip. Only the Dell Pro 16 Plus PB16250 has been tested.
+For the others, check your USB ID first (next section).
+
+| Line | Models |
+|---|---|
+| Dell Pro | Pro 13 Plus PB13250, Pro 14 Plus PB14250, **Pro 16 Plus PB16250** (tested), Pro 14 PC14250 |
+| Dell Pro Max | Pro Max 14 MC14250, Pro Max 16 MC16250 |
+| Dell Pro Rugged | Pro Rugged 13 RA13250, Pro Rugged 14 RB14250 |
+| Latitude | 5350, 5450, 5550, 7350, 7350 Detachable, 7450, 7650, 9450 |
+| Precision | 3490, 3590, 3591, 5490, 5690 |
+
+If you've got it working on another model, please open an issue or PR so it can be added to the list.
+
+**Other distros:** the scripts target Debian 13 (trixie). Ubuntu users should first try Dell's
+packaged driver (`apt search libfprint-2-tod1-broadcom-cv3plus`). Fedora and Arch users can
+find community packages of the same driver (Fedora COPR, AUR `libfprint-2-tod1-broadcom-cv3plus`).
+The steps in this repo show what those packages need: TOD `libfprint`, the driver `.so`,
+firmware in `/var/lib/fprint/.broadcomCv3plusFW`, the udev rules, and the `fprintd` sandbox change.
+
 ## Does this apply to my laptop?
 
 ```bash
@@ -153,6 +190,16 @@ copies to `/usr/share/doc/libfprint-2-tod1-broadcom-cv3plus/LICENCE.broadcom`.
 
 This project isn't affiliated with or endorsed by Dell, Broadcom, Canonical or Debian. It flashes
 reader firmware and changes your system's authentication setup. Use it at your own risk.
+
+## Search keywords
+
+Dell ControlVault 3 Plus Linux · CV3+ fingerprint · Broadcom 58200 Linux driver · BCM58200 ·
+0a5c:5865 · 0a5c:5864 · 0a5c:5866 · 0a5c:5867 · Dell Pro 16 Plus fingerprint Linux ·
+Dell Pro 14 Plus · Dell Pro 13 Plus · Dell Pro Max · Latitude 7450 / 5450 / 7350 fingerprint Linux ·
+Precision 3490 / 5490 fingerprint · Debian 13 trixie fingerprint reader · fprintd No devices available ·
+libfprint TOD · libfprint-2-tod1-broadcom-cv3plus on Debian · fingerprint sudo Debian ·
+pam_fprintd · SDDM fingerprint login · KDE Plasma 6 lock screen fingerprint (kde-fingerprint) ·
+Intel Lunar Lake / Core Ultra 200V laptop fingerprint Linux
 
 ## Sources
 
