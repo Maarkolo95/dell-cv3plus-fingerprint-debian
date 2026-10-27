@@ -1,0 +1,10 @@
+# Never commit the proprietary Broadcom driver/firmware or build output
+cv3plus/
+libfprint/
+build/
+stage/
+*.so
+*.so.*
+*.bin
+*.otp
+*.pem
